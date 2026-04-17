@@ -9,11 +9,16 @@ public class SimulationPanel extends JPanel {
     ArrayList<Double> longestTimesAlivePerGen = new ArrayList<>();
     Random rand = new Random();
     Boolean allDead = true;
+    Boolean newGenStarted = true;
     int maxTurnsPerGen = 10 * 60;
     int currentTurn = 0;
     int currentGen = 1;
 
     public void update() {
+        if (newGenStarted) {
+            printStartingStats();
+            newGenStarted = false;
+        }
         updatePrey();
         if (allDead || currentTurn >= maxTurnsPerGen) {
             printCurrentGenResults();
@@ -36,16 +41,16 @@ public class SimulationPanel extends JPanel {
 
             updateAge(p);
 
-            updateSpeed(p);
-
             checkSurvival(p);
+
+            updateSpeed(p);
 
             // check if going out of bounds
              move(p);
 
             checkBounds(p);
 
-            p.setCurrentTrun(p.getCurrentTurn() + 1);
+            p.setCurrentTurn(p.getCurrentTurn() + 1);
         }
 
         checkLiving();
@@ -65,7 +70,7 @@ public class SimulationPanel extends JPanel {
             p.setXSpeed(p.getXSpeed() + rand.nextDouble() * 4 - 2);
             p.setYSpeed(p.getYSpeed() + rand.nextDouble() * 4 - 2);
 
-            p.setCurrentTrun(0);
+            p.setCurrentTurn(0);
         }
     }
 
@@ -110,8 +115,8 @@ public class SimulationPanel extends JPanel {
         preyPopulation.clear();
         for (int i = 0; i < 50; i++) {
             preyPopulation.add(new Prey(5,
-                                        rand.nextDouble() * 2 - 1,
-                                        rand.nextDouble() * 2 - 1,
+                                        5 * (rand.nextDouble() * 2 - 1) * (rand.nextBoolean() ? 1 : -1),
+                                        5 * (rand.nextDouble() * 2 - 1) * (rand.nextBoolean() ? 1 : -1),
                                         5,
                                         rand.nextInt(getWidth()),
                                         rand.nextInt(getHeight()),
@@ -120,66 +125,100 @@ public class SimulationPanel extends JPanel {
         }
     }
 
+    public void printStartingStats() {
+        System.out.printf("Current Gen: %d\n", currentGen);
+        System.out.printf("New Gen pop size: %d\n", preyPopulation.size());
+    }
+
     public void printCurrentGenResults() {
         double longest_time_alive = 0;
+        Prey lastPrey = preyPopulation.get(0);
 
-        System.out.printf("Current Gen: %d\n", currentGen);
+        double fastestSpeed = 0;
+        Prey fastestPrey = preyPopulation.get(0);
+
+        double sumEnergy = 0;
+
         for (Prey p : preyPopulation) {
+            sumEnergy += p.getEnergy();
             if (p.getAge() > longest_time_alive) {
                 longest_time_alive = p.getAge();
+                lastPrey = p;
+            }
+            if (p.getSpeed() > fastestSpeed) {
+                fastestSpeed = p.getSpeed();
+                fastestPrey = p;
             }
             //System.out.printf("Prey has been alive for %f\n", p.getAge() / 60);
         }
 
+
         longestTimesAlivePerGen.add(longest_time_alive);
-        System.out.printf("Longest time alive: %f\n", longest_time_alive / 60);
+        System.out.printf("Average Energy: %f\n", sumEnergy / preyPopulation.size());
+        System.out.printf("Longest time alive: %f\nPrey speed: %f\n", longest_time_alive / 60, lastPrey.getSpeed());
+        System.out.printf("Fastest Speed: %f\n", fastestSpeed);
+        System.out.printf("%s\n", lastPrey.equals(fastestPrey) ? "SAME PREY" : "NOT THE SAME");
+
+        System.out.println();
     }
 
     public void printOverallResults() {
         double bestTime = 0;
-        int i = 0;
 
-        for (Prey p : preyPopulation) {
-            System.out.printf("Prey %d has lived: %f\n", i++, p.getAge());
-            if (p.getAge() > bestTime) {
-                bestTime = p.getAge();
+        for (Double d : longestTimesAlivePerGen) {
+            if (d > bestTime) {
+                bestTime = d;
             }
         }
-        System.out.printf("Longest survival time: %f", bestTime);
+        System.out.printf("Longest survival time: %f", bestTime / 60);
     }
 
     public void getNextGeneration(){
         for (Prey p : preyPopulation){
             // give a chance to randomly mate with another
             double chance = Math.min(0.30, p.getSpeed() * 0.07);
+            int amountMaking = Math.max((int)(p.getEnergy() / 3), 1);
 
             if (rand.nextDouble() < chance) {
-                Prey p2 = preyPopulation.get(rand.nextInt(preyPopulation.size() - 1));
-                newGen.add(new Prey(getIntAverage(p.getHealth(), p2.getHealth()),
-                                    getDoubleAverage(p.getXSpeed(), p2.getXSpeed()),
-                                    getDoubleAverage(p.getYSpeed(), p2.getYSpeed()),
-                                    5,
-                                    rand.nextDouble(getWidth()),
-                                    rand.nextDouble(getHeight()),
-                                    rand.nextInt(60) * 3,
-                                    rand.nextDouble() * 20));
+                Prey p2 = preyPopulation.get(rand.nextInt(preyPopulation.size()));
+                if (p.equals(p2)) {
+                    continue;
+                }
+
+                for (int i = 0; i < amountMaking; i++) {
+                    newGen.add(new Prey(getIntAverage(p.getHealth(), p2.getHealth()) + rand.nextInt(3) - 2,
+                                        getDoubleAverage(p.getXSpeed(), p2.getXSpeed()) * (rand.nextBoolean() ? 1 : -1),
+                                        getDoubleAverage(p.getYSpeed(), p2.getYSpeed()) * (rand.nextBoolean() ? 1 : -1),
+                                        5,
+                                        rand.nextDouble(getWidth()),
+                                        rand.nextDouble(getHeight()),
+                                        rand.nextInt(60) * 3,
+                                        rand.nextDouble() * 20 + rand.nextDouble(7) - 3));
+                }
             }
         }
+        
+        allDead = false;
 
-        currentGen++;
         preyPopulation.clear();
         preyPopulation.addAll(newGen);
         newGen.clear();
 
-        allDead = false;
+        if (preyPopulation.isEmpty()) {
+            return;
+        }
+        
+        newGenStarted = true;
+        currentTurn = 0;
+        currentGen++;
     }
 
     public int getIntAverage(int num1, int num2){
-        return (num1 + num2) / 2;
+        return (Math.abs(num1) + Math.abs(num2)) / 2;
     }
 
     public double getDoubleAverage(double num1, double num2){
-        return (num1 + num2) / 2;
+        return (Math.abs(num1) + Math.abs(num2)) / 2;
     }
 
     @Override

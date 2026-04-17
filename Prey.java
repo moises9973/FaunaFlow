@@ -4,7 +4,6 @@ public class Prey {
     private int radius;
     private double x_speed;
     private double y_speed;
-    private double speed_multiplier;
     private double age;
     private double x;
     private double y;
@@ -18,9 +17,8 @@ public class Prey {
         this.current_turn = 0;
         this.is_alive = true;
         this.radius = radius;
-        this.speed_multiplier = 5;
-        this.x_speed = x_speed * speed_multiplier;
-        this.y_speed = y_speed * speed_multiplier;
+        this.x_speed = x_speed;
+        this.y_speed = y_speed;
         this.energy = energy;
         this.age = 0;
         this.x = x;
@@ -92,7 +90,7 @@ public class Prey {
     }
 
     public double getSpeed() {
-        return Math.sqrt(this.x_speed * this.x_speed + this.y_speed + this.y_speed);
+        return Math.sqrt(this.x_speed * this.x_speed + this.y_speed * this.y_speed);
     }
 
     public int getTurnsToUpdate() {
@@ -108,7 +106,7 @@ public class Prey {
         return this.current_turn;
     }
 
-    public void setCurrentTrun(int current_turn) {
+    public void setCurrentTurn(int current_turn) {
         this.current_turn = current_turn;
     }
 }
