@@ -1,5 +1,5 @@
-import javax.swing.*;
 import java.awt.*;
+import javax.swing.*;
 
 public class Simulation {
 
@@ -22,12 +22,14 @@ public class Simulation {
             panel.update();
             panel.repaint();
 
+            /*
             if (panel.allDead) {
                 timer[0].stop();
                 System.out.print("Simulation finished\n");
                 panel.printResults();
                 System.exit(0);
             }
+            */
         });
         timer[0].start();
     }
